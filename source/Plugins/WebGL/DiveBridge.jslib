@@ -40,6 +40,13 @@ mergeInto(LibraryManager.library, {
     document.body.removeChild(ta);
   },
 
+  // Screen (CSS) pixels per pixel of the game's drawing, so the game knows how big its text really
+  // looks: about 0.5 on a phone, whose drawing uses 2 device pixels per screen pixel.
+  DiveCssPerDevicePixel: function () {
+    try { var c = Module.canvas; if (c && c.width > 0 && c.clientWidth > 0) return c.clientWidth / c.width; } catch (e) { }
+    return 1 / Math.min(window.devicePixelRatio || 1, 2);
+  },
+
   // 1 when the browser or system asks for reduced motion.
   DivePrefersReducedMotion: function () {
     try { return window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 1 : 0; } catch (e) { return 0; }

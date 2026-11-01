@@ -27,6 +27,27 @@ namespace DiveGame.UI
         static Font font;
         public static Font Font => font ? font : (font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"));
 
+#if UNITY_WEBGL && !UNITY_EDITOR
+        [System.Runtime.InteropServices.DllImport("__Internal")] static extern float DiveCssPerDevicePixel();
+#else
+        static float DiveCssPerDevicePixel() => 1f;
+#endif
+
+        // How many screen (CSS) pixels one reference unit is drawn at: 1 at 1280 x 720, about 0.54 on a
+        // phone held sideways (844 x 390).
+        public static float CssPerUnit(Canvas canvas)
+        {
+            float s = canvas ? canvas.rootCanvas.scaleFactor : 1f;
+            try { return s * DiveCssPerDevicePixel(); } catch { return s; }
+        }
+
+        // Large text for small screens: used when the questions' usual 21-unit text would be drawn
+        // under 14 screen pixels (it is 11.4 px on an 844 x 390 phone). Tests can force it either way.
+        public static bool? ForceLargeText;
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics() { ForceLargeText = null; }
+        public static bool LargeText(Canvas canvas) => ForceLargeText ?? (21f * CssPerUnit(canvas) < 14f);
+
         // An event system that reads the keyboard, mouse and touch through the new Input System.
         public static void EnsureEventSystem()
         {

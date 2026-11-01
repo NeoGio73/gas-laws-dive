@@ -21,7 +21,8 @@ namespace DiveGame.UI
     {
         public bool Busy { get; private set; }
 
-        RectTransform area, card;
+        RectTransform area, card, backdrop;
+        bool large;   // the large-text layout for small screens
         readonly List<Button> optionButtons = new List<Button>();
         readonly List<Text> optionLabels = new List<Text>();
         Text feedback;
@@ -73,12 +74,28 @@ namespace DiveGame.UI
             if (card) Destroy(card.gameObject);
             optionButtons.Clear(); optionLabels.Clear();
 
-            card = UiKit.CardPanel(area, Mathf.Min(780f, Mathf.Max(420f, area.rect.width - 40f)));
-            var col = card.GetComponent<VerticalLayoutGroup>();
-            col.padding = new RectOffset(36, 36, 26, 28); col.spacing = 12;
+            // Small screens (a phone held sideways): larger text, and the card fills the space left of
+            // the side panel on a solid backdrop that hides the scene while the question is open.
+            // Decided per question by the screen alone, so it is the same in both versions.
+            large = UiKit.LargeText(area.GetComponentInParent<Canvas>());
+            if (large && !backdrop)
+            {
+                var solid = UiKit.Card; solid.a = 1f;
+                backdrop = UiKit.Box(area, "Backdrop", solid).rectTransform;
+                UiKit.Stretch(backdrop);
+                backdrop.SetAsFirstSibling();
+            }
+            if (backdrop) backdrop.gameObject.SetActive(large);
 
-            UiKit.Label(card, "Dive " + dive + "  ·  Question " + number + " of " + count, 18, UiKit.Muted, FontStyle.Bold, TextAnchor.MiddleLeft);
-            UiKit.Label(card, q.prompt, 24, UiKit.Ink, FontStyle.Normal, TextAnchor.MiddleLeft);
+            float width = large ? area.rect.width - 24f : Mathf.Min(780f, Mathf.Max(420f, area.rect.width - 40f));
+            card = UiKit.CardPanel(area, width);
+            var col = card.GetComponent<VerticalLayoutGroup>();
+            if (large) { col.padding = new RectOffset(28, 28, 14, 16); col.spacing = 8; }
+            else { col.padding = new RectOffset(36, 36, 26, 28); col.spacing = 12; }
+            int headSize = large ? 24 : 18, promptSize = large ? 31 : 24, optionSize = large ? 28 : 21;
+
+            UiKit.Label(card, "Dive " + dive + "  ·  Question " + number + " of " + count, headSize, UiKit.Muted, FontStyle.Bold, TextAnchor.MiddleLeft);
+            UiKit.Label(card, q.prompt, promptSize, UiKit.Ink, FontStyle.Normal, TextAnchor.MiddleLeft);
             if (!string.IsNullOrEmpty(q.image)) StartCoroutine(LoadImage(q.image));
 
             for (int i = 0; i < q.options.Length; i++)
@@ -86,17 +103,23 @@ namespace DiveGame.UI
                 int pick = i;
                 var b = UiKit.MakeButton(card, "", false, () => Choose(pick), 0);
                 var label = b.GetComponentInChildren<Text>();
-                label.alignment = TextAnchor.MiddleLeft; label.fontSize = 21; label.fontStyle = FontStyle.Normal;
+                label.alignment = TextAnchor.MiddleLeft; label.fontSize = optionSize; label.fontStyle = FontStyle.Normal;
                 label.text = Question.Letter(i) + ".   " + q.options[i];
-                var pad = b.GetComponent<HorizontalLayoutGroup>(); pad.padding = new RectOffset(18, 18, 10, 10);
-                b.GetComponent<LayoutElement>().minHeight = 48;
+                var pad = b.GetComponent<HorizontalLayoutGroup>(); pad.padding = large ? new RectOffset(16, 16, 5, 5) : new RectOffset(18, 18, 10, 10);
+                b.GetComponent<LayoutElement>().minHeight = large ? 44 : 48;
                 optionButtons.Add(b); optionLabels.Add(label);
             }
 
-            feedback = UiKit.Label(card, "", 21, UiKit.Ink, FontStyle.Normal, TextAnchor.MiddleLeft);
+            feedback = UiKit.Label(card, "", optionSize, UiKit.Ink, FontStyle.Normal, TextAnchor.MiddleLeft);
             feedback.gameObject.SetActive(false);
             var row = UiKit.Row(card);
             continueButton = UiKit.MakeButton(row, number < count ? "Next question" : "Continue the dive", true, () => next?.Invoke());
+            if (large)
+            {
+                continueButton.GetComponentInChildren<Text>().fontSize = 30;
+                continueButton.GetComponent<HorizontalLayoutGroup>().padding = new RectOffset(28, 28, 6, 6);
+                continueButton.GetComponent<LayoutElement>().minHeight = 50;
+            }
             continueButton.gameObject.SetActive(false);
             Select(optionButtons[0]);
             FitCard();
