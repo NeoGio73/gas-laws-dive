@@ -44,6 +44,38 @@ namespace DiveGame.UI
         float shownSide = -1, refShownSide = -1;
         int size;
 
+        // Large text for small screens (UiKit.LargeText, the same switch as the question card): every
+        // text that would be drawn under about 12 screen pixels goes up to LargeMin units (12.5 px at
+        // 844 x 390). The panel's size and place never change, in either version. Every label fits at
+        // that size in full (measured 2026-11-01); a label that ever does not gets a short form
+        // (Track's shortWords), never smaller text.
+        public const int LargeMin = 23;
+        class Sized { public Text text; public int normal; public string normalWords, shortWords; public LayoutElement le; public float leNormal, leLarge; }
+        const float TwoLines = 60f;   // room for two lines of large text (2 x 23 x 1.15, plus a little)
+        readonly System.Collections.Generic.List<Sized> sized = new System.Collections.Generic.List<Sized>();
+        bool large;
+        float captionHeight = CaptionHeight;
+
+        Text Track(Text t, string shortWords = null, LayoutElement le = null, float leLarge = LargeMin + 8)
+        {
+            sized.Add(new Sized { text = t, normal = t.fontSize, normalWords = t.text, shortWords = shortWords, le = le, leNormal = le ? le.minHeight : 0, leLarge = leLarge });
+            return t;
+        }
+
+        void ApplyLarge(bool on)
+        {
+            large = on;
+            foreach (var s in sized)
+            {
+                s.text.fontSize = on ? Mathf.Max(s.normal, LargeMin) : s.normal;
+                if (s.shortWords != null) s.text.text = on ? s.shortWords : s.normalWords;
+                if (s.le) s.le.minHeight = on ? Mathf.Max(s.leNormal, s.leLarge) : s.leNormal;
+            }
+            captionHeight = on ? LargeMin + 6 : CaptionHeight;
+            if (nowCaption) nowCaption.rectTransform.sizeDelta = refCaption.rectTransform.sizeDelta = new Vector2(0, captionHeight);
+            shownSide = refShownSide = -1;
+        }
+
         public static SidePanel Create(Transform canvas, GasModel model, bool particles)
         {
             var bg = UiKit.Box(canvas, "Side Panel", UiKit.Card);
@@ -82,7 +114,8 @@ namespace DiveGame.UI
                 refSlot = Slot("Earlier", out var rb, out refCaption); RefBox = rb;
                 nowSlot = Slot("Now", out var nb, out nowCaption); Box = nb;
                 var legend = UiKit.Label(transform, "Each dot stands for a huge number of air particles.", 16, UiKit.Muted);
-                legend.gameObject.AddComponent<LayoutElement>().minHeight = 22;
+                var legendLe = legend.gameObject.AddComponent<LayoutElement>(); legendLe.minHeight = 22;
+                Track(legend, null, legendLe, TwoLines);   // two lines in large text
             }
 
             size = particles ? 22 : 34;   // Version B: the same readouts, larger
@@ -104,7 +137,7 @@ namespace DiveGame.UI
             boxRect.gameObject.AddComponent<CanvasRenderer>();
             box = boxRect.gameObject.AddComponent<ParticleBox>();
             box.raycastTarget = false;
-            caption = UiKit.Label(slot, "", 18, UiKit.Ink, FontStyle.Bold);
+            caption = Track(UiKit.Label(slot, "", 18, UiKit.Ink, FontStyle.Bold));
             var cr = caption.rectTransform;
             cr.anchorMin = new Vector2(0, 0.5f); cr.anchorMax = new Vector2(1, 0.5f); cr.pivot = new Vector2(0.5f, 1f);
             cr.sizeDelta = new Vector2(0, CaptionHeight);   // placed under its box in DrawBoxes
@@ -116,10 +149,10 @@ namespace DiveGame.UI
         {
             var row = UiKit.Row(transform, particles ? 8 : 12);   // same spacing as the readouts below
             row.GetComponent<HorizontalLayoutGroup>().childForceExpandWidth = true;
-            row.gameObject.AddComponent<LayoutElement>().minHeight = 26;
+            var rowLe = row.gameObject.AddComponent<LayoutElement>(); rowLe.minHeight = 26;
             if (particles) UiKit.Label(row, "", 18, UiKit.Muted).raycastTarget = false;   // over the names
-            headerBefore = UiKit.Label(row, "", 18, UiKit.Muted, FontStyle.Bold, particles ? TextAnchor.MiddleRight : TextAnchor.MiddleLeft);
-            headerNow = UiKit.Label(row, "Now", 18, UiKit.Ink, FontStyle.Bold, particles ? TextAnchor.MiddleRight : TextAnchor.MiddleLeft);
+            headerBefore = Track(UiKit.Label(row, "", 18, UiKit.Muted, FontStyle.Bold, particles ? TextAnchor.MiddleRight : TextAnchor.MiddleLeft), null, rowLe);
+            headerNow = Track(UiKit.Label(row, "Now", 18, UiKit.Ink, FontStyle.Bold, particles ? TextAnchor.MiddleRight : TextAnchor.MiddleLeft));
             headerBefore.raycastTarget = headerNow.raycastTarget = false;
             row.gameObject.SetActive(false);
             return row.gameObject;
@@ -137,21 +170,26 @@ namespace DiveGame.UI
                 v.childForceExpandWidth = true; v.childForceExpandHeight = false;
                 v.childAlignment = TextAnchor.MiddleLeft;
                 cell.gameObject.AddComponent<LayoutElement>().flexibleHeight = 1;
-                UiKit.Label(cell, label, 20, UiKit.Muted, FontStyle.Normal, TextAnchor.LowerLeft).raycastTarget = false;
+                var name = UiKit.Label(cell, label, 20, UiKit.Muted, FontStyle.Normal, TextAnchor.LowerLeft);
+                name.raycastTarget = false;
+                Track(name);
                 var values = UiKit.Row(cell, 12);
                 values.GetComponent<HorizontalLayoutGroup>().childForceExpandWidth = true;
-                r.before = UiKit.Label(values, "", size, UiKit.Muted, FontStyle.Bold, TextAnchor.UpperLeft);
-                r.now = UiKit.Label(values, "", size, UiKit.Ink, FontStyle.Bold, TextAnchor.UpperLeft);
+                r.before = Track(UiKit.Label(values, "", size, UiKit.Muted, FontStyle.Bold, TextAnchor.UpperLeft));
+                r.now = Track(UiKit.Label(values, "", size, UiKit.Ink, FontStyle.Bold, TextAnchor.UpperLeft));
                 r.root = cell.gameObject;
             }
             else
             {
                 var row = UiKit.Row(transform, 8);
                 row.GetComponent<HorizontalLayoutGroup>().childForceExpandWidth = true;
-                row.gameObject.AddComponent<LayoutElement>().minHeight = size + 10;
-                UiKit.Label(row, label, size, UiKit.Muted, FontStyle.Normal, TextAnchor.MiddleLeft).raycastTarget = false;
-                r.before = UiKit.Label(row, "", size, UiKit.Muted, FontStyle.Bold, TextAnchor.MiddleRight);
-                r.now = UiKit.Label(row, "", size, UiKit.Ink, FontStyle.Bold, TextAnchor.MiddleRight);
+                var rowLe = row.gameObject.AddComponent<LayoutElement>(); rowLe.minHeight = size + 10;
+                var name = UiKit.Label(row, label, size, UiKit.Muted, FontStyle.Normal, TextAnchor.MiddleLeft);
+                name.raycastTarget = false;
+                // The temperature shows °C and K on two lines while comparing.
+                Track(name, null, rowLe, label == "Temperature" ? TwoLines : LargeMin + 8);
+                r.before = Track(UiKit.Label(row, "", size, UiKit.Muted, FontStyle.Bold, TextAnchor.MiddleRight));
+                r.now = Track(UiKit.Label(row, "", size, UiKit.Ink, FontStyle.Bold, TextAnchor.MiddleRight));
                 r.root = row.gameObject;
             }
             r.before.raycastTarget = r.now.raycastTarget = false;
@@ -162,6 +200,8 @@ namespace DiveGame.UI
         void LateUpdate()
         {
             if (model == null) return;
+            bool want = UiKit.LargeText(GetComponentInParent<Canvas>());
+            if (want != large) ApplyLarge(want);
             var s = model.State();
             var b = Comparing ? refModel.State() : null;
 
@@ -202,9 +242,9 @@ namespace DiveGame.UI
 
             // Both boxes use the same scale, so their sizes can be compared directly.
             float width = Comparing ? boxArea.rect.width / 2f : boxArea.rect.width;
-            float height = boxArea.rect.height - (Comparing ? CaptionHeight + 4 : 0);
+            float height = boxArea.rect.height - (Comparing ? captionHeight + 4 : 0);
             float maxSide = Mathf.Max(0f, Mathf.Min(width, height) - 12f);
-            float boxY = Comparing ? CaptionHeight / 2 : 0;
+            float boxY = Comparing ? captionHeight / 2 : 0;
             ((RectTransform)Box.transform).anchoredPosition = new Vector2(0, boxY);
             // Each label sits just under the largest its box can be, so the labels never move.
             var under = new Vector2(0, boxY - maxSide / 2 - 8);
