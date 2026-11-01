@@ -44,7 +44,9 @@ Remove-Item (Join-Path $src "Scripts\Testing") -Recurse -Force
 # 3. The tools, without the private parts, this folder's public templates and the test-username tools
 $tools = Join-Path $pub "tools"
 Copy-Item $PSScriptRoot $tools -Recurse
-foreach ($leave in "private", "public", "__pycache__", "browser_steps", "reference_codes.mjs") {
+# tools\models holds the Blender working files, which contain BlenderKit models (royalty-free, not
+# ours to share): never public.
+foreach ($leave in "private", "public", "__pycache__", "browser_steps", "reference_codes.mjs", "models") {
     $p = Join-Path $tools $leave; if (Test-Path $p) { Remove-Item $p -Recurse -Force }
 }
 
@@ -61,6 +63,9 @@ foreach ($s in $secrets) {
 }
 $bought = Get-ChildItem $pub -Recurse -File | Where-Object { $_.FullName -match 'Stylized Water|Staggart|Mixall|BlenderKit|blenderkit|LiquidVolume|HighlightPlus' }
 if ($bought) { throw "Purchased package files found: $($bought[0].FullName). Nothing was committed." }
+# No model files at all outside the build (the build's are packed inside its data file).
+$models = Get-ChildItem $pub -Recurse -File | Where-Object { $_.FullName -notmatch '\\\.git\\' -and $_.Extension -in '.blend', '.blend1', '.fbx', '.glb', '.gltf', '.obj' }
+if ($models) { throw "Model file found: $($models[0].FullName). Nothing was committed." }
 # No test username anywhere, the build included (its files are compressed, so they are opened to look).
 $tag = 'dive' + 'test'   # built from two parts so this script does not match itself
 $users = $text | Select-String -Pattern $tag -List

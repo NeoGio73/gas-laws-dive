@@ -22,7 +22,6 @@ namespace DiveGame.EditorTools
         const string Gen = "Assets/DiveGame/Generated";
         const string SW = "Assets/Stylized Water 3/";
         const string CoralPrefab = SW + "_Demo/Underwater/DemoAssets/Prefabs/SW3_Coral.prefab";
-        const string KelpPrefab = SW + "_Demo/Underwater/DemoAssets/Prefabs/SW3_Kelp.prefab";
         const string PlanktonPrefab = SW + "Prefabs/Particles/Underwater/Plankton.prefab";
         const string ShaftsPrefab = SW + "Prefabs/Particles/Underwater/Lightshafts.prefab";
         const string BubbleMat = SW + "Materials/Effects/Underwater/BubbleParticle.mat";
@@ -58,10 +57,9 @@ namespace DiveGame.EditorTools
             cam.fieldOfView = 62f;
             cam.transform.position = new Vector3(0, -1, 0);
             cam.gameObject.AddComponent<DiveCamera>();
-            // The player's own bubbles (they pass the face quickly), and Sam's: a column a few
-            // metres ahead and to the left, where Sam swims, that stays in view as it rises.
+            // The player's own bubbles (they pass the face quickly). Sam's rise from Sam's regulator
+            // (DiveWildlife).
             BuildBubbles(cam.transform, "Breath Bubbles", new Vector3(0.1f, -0.42f, 1.1f), 0.06f, 18, 7f, 0f);
-            BuildBubbles(cam.transform, "Sam's Bubbles", new Vector3(-2.4f, -0.6f, 6f), 0.07f, 20, 12f, 2.2f);
 
             // ---- water surface and underwater rendering ----
             Material water = WaterMaterial();
@@ -88,8 +86,13 @@ namespace DiveGame.EditorTools
             s.fogDensity = 0.35f; s.fogStartDistance = 2f; s.fogBrightness = 0.9f; s.colorAbsorption = 0.25f;
             s.heightFogDensity = 3f; s.heightFogStart = 3f; s.heightFogEnd = 30f; s.heightFogBrightness = 0.35f;
             s.causticsBrightness = 0.6f; s.translucencyStrength = 0.5f; s.translucencyExponent = 2f;
-            AddEffect(area, PlanktonPrefab, 0f, 40f, false);
-            AddEffect(area, ShaftsPrefab, 0f, 14f, true);
+            var plankton = AddEffect(area, PlanktonPrefab, 0f, 40f, false);
+            var rays = AddEffect(area, ShaftsPrefab, 0f, 14f, true);
+            CalmSunRays(rays);
+
+            // Steady light: slow ripples always; calmer still with Reduce motion (SteadyLight).
+            var steady = new GameObject("Steady Light").AddComponent<SteadyLight>();
+            steady.water = grid; steady.area = area; steady.sunRays = rays; steady.plankton = plankton;
 
             // ---- the bottom and the reef ----
             var env = new GameObject("Seafloor").transform;
@@ -103,7 +106,6 @@ namespace DiveGame.EditorTools
                 Tinted("Coral Orange", new Color(0.92f, 0.55f, 0.32f)),   // orange sponges and corals
                 Tinted("Coral Purple", new Color(0.62f, 0.42f, 0.70f)),   // sea fans: purple
             };
-            Material plume = Tinted("Soft Coral", new Color(0.45f, 0.30f, 0.38f));
 
             var reef = new GameObject("Reef").transform; reef.SetParent(env);
             for (int i = 0; i < 90; i++)   // rocks: the reef's frame
@@ -120,8 +122,12 @@ namespace DiveGame.EditorTools
                 r.isStatic = true;
             }
             Scatter(reef, CoralPrefab, 150, rng, 0.7f, 2.0f, coralMats);
-            Scatter(reef, KelpPrefab, 60, rng, 0.18f, 0.32f, new[] { plume });
+            // Florida's soft corals, made in Blender (Tools/models/dive_animals.blend): sea rods and
+            // sea plumes, in place of the package's kelp (giant kelp does not grow off Florida).
+            foreach (string name in new[] { "Searod1", "Searod2", "Searod3", "Seaplume1", "Seaplume2", "Seaplume3" })
+                Scatter(reef, "Assets/DiveGame/Models/SoftCorals/" + name + ".fbx", 14, rng, 0.8f, 1.3f, null);
 
+            DiveWildlife.Build(cam.transform, rng);
             EditorSceneManager.SaveScene(scene, path);
         }
 
@@ -142,16 +148,9 @@ namespace DiveGame.EditorTools
             return new Vector3(x, SandHeight(x, z), z);
         }
 
-        static float SandHeight(float x, float z)
-        {
-            float h = BottomY + 1.2f * Mathf.PerlinNoise(x * 0.04f + 10f, z * 0.04f + 3f) + 0.35f * Mathf.PerlinNoise(x * 0.25f, z * 0.25f);
-            float ridge = Mathf.Exp(-Mathf.Pow((x + 15f) / 9f, 2f));   // the reef rises along its band
-            h += ridge * (1.5f + 1.2f * Mathf.PerlinNoise(z * 0.05f, 7f));
-            // Flatten into the channel along the path: there the sand is at least 31.3 m below the surface.
-            float inChannel = Mathf.Clamp01(1f - (Mathf.Abs(x) - ChannelHalfWidth) / 6f);
-            float channel = BottomY - 0.3f - 0.3f * Mathf.PerlinNoise(x * 0.3f, z * 0.3f);
-            return Mathf.Lerp(h, Mathf.Min(h, channel), inChannel);
-        }
+        // The sand's shape (the reef ridge left of the path, and a channel along the path at least
+        // 31.3 m deep): one formula, in Scripts/Scene/Wildlife.cs, shared with the animals.
+        public static float SandHeight(float x, float z) => DiveSand.HeightAt(x, z);
 
         static void BuildSand(Transform parent)
         {
@@ -247,26 +246,48 @@ namespace DiveGame.EditorTools
                 Vector3 at = ReefPoint(rng, 0.85f);
                 float sc = Mathf.Lerp(minScale, maxScale, (float)rng.NextDouble());
                 go.transform.position = at + Vector3.down * 0.1f;
-                go.transform.rotation = Quaternion.Euler(0, (float)rng.NextDouble() * 360f, 0);
-                go.transform.localScale = Vector3.one * sc;
-                var mat = mats[rng.Next(mats.Length)];
-                foreach (var r in go.GetComponentsInChildren<Renderer>()) r.sharedMaterial = mat;
+                // Turn about the vertical, keeping the rotation the importer gave the model (Blender's
+                // FBX files come in with one; overwriting it laid the soft corals flat).
+                go.transform.rotation = Quaternion.Euler(0, (float)rng.NextDouble() * 360f, 0) * go.transform.rotation;
+                go.transform.localScale = go.transform.localScale * sc;
+                if (mats != null)
+                {
+                    var mat = mats[rng.Next(mats.Length)];
+                    foreach (var r in go.GetComponentsInChildren<Renderer>()) r.sharedMaterial = mat;
+                }
                 foreach (var c in go.GetComponentsInChildren<Collider>()) Object.DestroyImmediate(c);
                 go.isStatic = true;
                 foreach (Transform t in go.GetComponentsInChildren<Transform>()) t.gameObject.isStatic = true;
             }
         }
 
-        static void AddEffect(UnderwaterArea area, string prefabPath, float minDepth, float maxDepth, bool alignToSun)
+        static ParticleSystem AddEffect(UnderwaterArea area, string prefabPath, float minDepth, float maxDepth, bool alignToSun)
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
-            if (!prefab) { Debug.LogWarning("Dive Game: missing " + prefabPath); return; }
+            if (!prefab) { Debug.LogWarning("Dive Game: missing " + prefabPath); return null; }
             var go = (GameObject)PrefabUtility.InstantiatePrefab(prefab, area.transform);
+            PrefabUtility.UnpackPrefabInstance(go, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
             var ps = go.GetComponent<ParticleSystem>() ?? go.GetComponentInChildren<ParticleSystem>();
             area.particleEffects.Add(new UnderwaterArea.ParticleEffect(minDepth, maxDepth, alignToSun) { particleSystem = ps });
+            return ps;
         }
 
-        static void BuildBubbles(Transform cam, string name, Vector3 local, float size, int perBreath, float lifetime, float delay)
+        // Sun rays that never flicker: each ray lives 6 to 9 s (the package's were 2 to 3 s), fades
+        // in over its first 40 % and out over its last 40 %, and fewer appear at once. No ray's
+        // brightness changes faster than about once every 2.5 s.
+        static void CalmSunRays(ParticleSystem ps)
+        {
+            if (!ps) return;
+            var main = ps.main; main.startLifetime = new ParticleSystem.MinMaxCurve(6f, 9f);
+            var em = ps.emission; em.rateOverTime = 9f;
+            var col = ps.colorOverLifetime; col.enabled = true;
+            var g = new Gradient();
+            g.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+                      new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(0.8f, 0.4f), new GradientAlphaKey(0.8f, 0.6f), new GradientAlphaKey(0f, 1f) });
+            col.color = new ParticleSystem.MinMaxGradient(g);
+        }
+
+        public static void BuildBubbles(Transform cam, string name, Vector3 local, float size, int perBreath, float lifetime, float delay)
         {
             var go = new GameObject(name, typeof(ParticleSystem));
             go.transform.SetParent(cam, false);
@@ -308,6 +329,7 @@ namespace DiveGame.EditorTools
             m.SetFloat("_NormalStrength", 0.25f);
             m.SetFloat("_CausticsChromance", 0.15f);   // light ripples on the sand: almost no rainbow fringes
             m.SetFloat("_CausticsTiling", 0.35f);
+            m.SetFloat("_CausticsSpeed", 0.05f);       // slow, drifting ripples (the package's 0.1 shimmers); calmer still with Reduce motion
             EditorUtility.SetDirty(m);
             return m;
         }

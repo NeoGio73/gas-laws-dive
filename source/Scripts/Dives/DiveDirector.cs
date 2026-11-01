@@ -133,7 +133,18 @@ namespace DiveGame.Dives
             Panel.Compare(Model.Copy(), "Warm water");
             ShowStory(true, "Crossing into the cold water. Sam points at the thermometer on their dive computer.", null);
             float warm = DiveWater.Dive2WarmC, cold = DiveWater.Dive2ColdC;
-            yield return Over(Fast(8f), t => Model.tempC = Mathf.Lerp(warm, cold, t));
+            // The cold layer looks a little hazier and bluer, as a thermocline does (both versions).
+            var area = FindAnyObjectByType<StylizedWater3.UnderwaterRendering.UnderwaterArea>();
+            float fog0 = area ? area.shadingSettings.fogDensity : 0f, abs0 = area ? area.shadingSettings.colorAbsorption : 0f;
+            yield return Over(Fast(8f), t =>
+            {
+                Model.tempC = Mathf.Lerp(warm, cold, t);
+                if (area)
+                {
+                    area.shadingSettings.fogDensity = Mathf.Lerp(fog0, fog0 * 1.3f, t);
+                    area.shadingSettings.colorAbsorption = Mathf.Lerp(abs0, abs0 * 1.4f, t);
+                }
+            });
             Phase = "cold";
             yield return Say("The water is now " + cold + " °C. You did not add or let out any air, and the depth did not " +
                              "change. Compare the air in your vest now with the air in warm water.", "Continue");

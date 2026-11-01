@@ -140,9 +140,27 @@ namespace DiveGame.UI
                 try { DiveCopy(CodeShown); copied.text = "Copied. You can paste it into D2L."; }
                 catch { copied.text = "Copy did not work here: please write the code down."; }
             });
+            UiKit.MakeButton(row, "Credits", false, ShowCredits, 160);
             copied = UiKit.Label(card, "", 20, UiKit.Muted);
             sendStatus = UiKit.Label(card, "", 20, UiKit.Muted);
             EventSystem.current?.SetSelectedGameObject(copy.gameObject);
+        }
+
+        // Every creator whose work is in the game (handoff rule 5; ASSET_LICENSES.md has the detail).
+        void ShowCredits()
+        {
+            Begin("credits");
+            UiKit.Label(card, "Credits", 36, UiKit.Ink, FontStyle.Bold);
+            UiKit.Label(card,
+                "Game, questions and Sam the dive buddy: Prof. John Picione, Daytona State College.\n\n" +
+                "Fish (lionfish, puffer, butterflyfish, flatfish, school fish): Quaternius, from Poly Pizza (CC0).\n" +
+                "Low Poly Sea Turtle and Low Poly Stingray: chroma 3D, from BlenderKit.\n" +
+                "Water and underwater light: Stylized Water 3 and its Underwater Rendering, by Staggart Creations.\n" +
+                "Reef corals: from the Underwater Rendering package. Sand, rocks, sea rods and sea plumes: made for this game.\n" +
+                "Made with Unity.",
+                20, UiKit.Ink, FontStyle.Normal, TextAnchor.MiddleLeft);
+            var back = UiKit.MakeButton(UiKit.Row(card), "Back to my code", true, ShowCode);
+            EventSystem.current?.SetSelectedGameObject(back.gameObject);
         }
 
         void Update()
