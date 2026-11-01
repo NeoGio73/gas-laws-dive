@@ -34,5 +34,34 @@ namespace DiveGame
                 default: return null;
             }
         }
+
+        // The learning system the student signs in to, from the same tag: S uses Canvas, the
+        // Daytona tags Falcon Online. No tag, or a tag not listed here, gives null: the screens then
+        // say "your course username" and "your course site".
+        public static string LearningSystem(string section)
+        {
+            switch (section)
+            {
+                case "S": return "Canvas";
+                case "F1": case "F2": case "O1": case "O7": case "B101": case "B401": return "Falcon Online";
+                default: return null;
+            }
+        }
+    }
+
+    // The words the screens use for the learning system, for the tag in the link.
+    public static class SiteWords
+    {
+        static string System => GameConfig.LearningSystem(Study.StudySession.Section);
+
+        // "Canvas username", "Falcon Online username" or "course username"
+        public static string Username => (System ?? "course") + " username";
+        // "Canvas", "Falcon Online" or "your course site"
+        public static string Site => System ?? "your course site";
+        // Where the code goes: "the Canvas assignment for this game" or "the assignment for this
+        // game on your course site"
+        public static string Assignment => System != null
+            ? "the " + System + " assignment for this game"
+            : "the assignment for this game on your course site";
     }
 }

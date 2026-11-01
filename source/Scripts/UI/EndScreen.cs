@@ -129,15 +129,15 @@ namespace DiveGame.UI
             code.gameObject.AddComponent<LayoutElement>().minHeight = 96;
             var codeText = UiKit.Label(code.transform, CodeShown, 60, UiKit.FieldInk, FontStyle.Bold);
             UiKit.Stretch(codeText.rectTransform);
-            UiKit.Label(card, "for the D2L username " + StudySession.DisplayName, 22, UiKit.Muted);
+            UiKit.Label(card, "for the " + SiteWords.Username + " " + StudySession.DisplayName, 22, UiKit.Muted);
             UiKit.Label(card,
-                "To get your extra credit, open the D2L assignment for this game and type in your D2L username " +
-                "and this code. The code works only with your username.", 22, UiKit.Ink, FontStyle.Normal, TextAnchor.MiddleLeft);
+                "To get your extra credit, open " + SiteWords.Assignment + " and type in your " + SiteWords.Username +
+                " and this code. The code works only with your username.", 22, UiKit.Ink, FontStyle.Normal, TextAnchor.MiddleLeft);
             var row = UiKit.Row(card);
             Text copied = null;
             var copy = UiKit.MakeButton(row, "Copy the code", true, () =>
             {
-                try { DiveCopy(CodeShown); copied.text = "Copied. You can paste it into D2L."; }
+                try { DiveCopy(CodeShown); copied.text = "Copied. You can paste it into " + SiteWords.Site + "."; }
                 catch { copied.text = "Copy did not work here: please write the code down."; }
             });
             UiKit.MakeButton(row, "Credits", false, ShowCredits, 160);

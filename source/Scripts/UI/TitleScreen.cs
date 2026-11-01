@@ -33,8 +33,8 @@ namespace DiveGame.UI
             UiKit.Label(card, "Gas Laws Dive", 54, UiKit.Ink, FontStyle.Bold);
             UiKit.Label(card, "Five dives off the Florida coast, one gas law on each.", 24, UiKit.Muted);
             Spacer(6);
-            UiKit.Label(card, "Your D2L username", 26, UiKit.Ink, FontStyle.Bold, TextAnchor.MiddleLeft);
-            nameBox = UiKit.MakeInput(card, "the name you use to sign in to D2L");
+            UiKit.Label(card, "Your " + SiteWords.Username, 26, UiKit.Ink, FontStyle.Bold, TextAnchor.MiddleLeft);
+            nameBox = UiKit.MakeInput(card, "the name you use to sign in to " + SiteWords.Site);
             nameBox.text = typed;
             nameBox.onSubmit.AddListener(_ => OnNameEntered());
             nameError = UiKit.Label(card, "", 22, UiKit.Accent, FontStyle.Bold, TextAnchor.MiddleLeft);
@@ -57,7 +57,7 @@ namespace DiveGame.UI
             typed = nameBox ? nameBox.text : typed;
             if (StudyIdentity.Normalize(typed).Length == 0)
             {
-                nameError.text = "Type your D2L username first.";
+                nameError.text = "Type your " + SiteWords.Username + " first.";
                 nameError.gameObject.SetActive(true);
                 Focus(nameBox);
                 return;
@@ -73,7 +73,7 @@ namespace DiveGame.UI
             UiKit.Label(card, "Welcome, " + name + ".", 44, UiKit.Ink, FontStyle.Bold);
             UiKit.Label(card, "Is this right?", 32, UiKit.Ink);
             UiKit.Label(card,
-                "Check the spelling carefully. Your completion code works only with this exact username.",
+                "Check the spelling carefully. Your completion code works only with this exact " + SiteWords.Username + ".",
                 22, UiKit.Muted);
             var row = UiKit.Row(card);
             var no = UiKit.MakeButton(row, "No, change it", false, ShowNameEntry);
