@@ -152,7 +152,8 @@ namespace DiveGame.UI
             Begin("credits");
             UiKit.Label(card, "Credits", 36, UiKit.Ink, FontStyle.Bold);
             UiKit.Label(card,
-                "Game, questions and Sam the dive buddy: Prof. John Picione, Daytona State College.\n\n" +
+                "Game and questions: Prof. John Picione, Daytona State College.\n" +
+                "Sam the dive buddy: \"Adventurer\" by Quaternius (CC0), with scuba gear made for this game; his kick from \"Swimming\" by Mixamo (Adobe).\n\n" +
                 "Fish (lionfish, puffer, butterflyfish, flatfish, school fish): Quaternius, from Poly Pizza (CC0).\n" +
                 "Low Poly Sea Turtle and Low Poly Stingray: chroma 3D, from BlenderKit.\n" +
                 "Water and underwater light: Stylized Water 3 and its Underwater Rendering, by Staggart Creations.\n" +

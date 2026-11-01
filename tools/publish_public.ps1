@@ -63,8 +63,9 @@ foreach ($s in $secrets) {
 }
 $bought = Get-ChildItem $pub -Recurse -File | Where-Object { $_.FullName -match 'Stylized Water|Staggart|Mixall|BlenderKit|blenderkit|LiquidVolume|HighlightPlus' }
 if ($bought) { throw "Purchased package files found: $($bought[0].FullName). Nothing was committed." }
-# No model files at all outside the build (the build's are packed inside its data file).
-$models = Get-ChildItem $pub -Recurse -File | Where-Object { $_.FullName -notmatch '\\\.git\\' -and $_.Extension -in '.blend', '.blend1', '.fbx', '.glb', '.gltf', '.obj' }
+# No model or animation files at all outside the build (the build's are packed inside its data
+# file). Mixamo's terms forbid handing out its animation files; Generated/SamKick.anim is made from one.
+$models = Get-ChildItem $pub -Recurse -File | Where-Object { $_.FullName -notmatch '\\\.git\\' -and $_.Extension -in '.blend', '.blend1', '.fbx', '.glb', '.gltf', '.obj', '.anim', '.controller', '.mask' }
 if ($models) { throw "Model file found: $($models[0].FullName). Nothing was committed." }
 # No test username anywhere, the build included (its files are compressed, so they are opened to look).
 $tag = 'dive' + 'test'   # built from two parts so this script does not match itself
