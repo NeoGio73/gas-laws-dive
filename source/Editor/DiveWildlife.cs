@@ -283,6 +283,36 @@ namespace DiveGame.EditorTools
             try { return ConfigureSam(); } finally { configuring = false; }
         }
 
+        // The fins are drawn from both sides (his request, 2026-11-01: from behind, a blade seen from
+        // its back face vanished to a thin line). Copies of their materials with culling off, written
+        // to Generated/ on every rebuild.
+        static void TwoSidedFins(GameObject model)
+        {
+            Directory.CreateDirectory(Gen);
+            foreach (var r in model.GetComponentsInChildren<Renderer>())
+            {
+                if (!r.name.StartsWith("Sam Fin")) continue;
+                var mats = r.sharedMaterials;
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    string path = Gen + mats[i].name.Replace(" ", "") + "_TwoSided.mat";
+                    var m = AssetDatabase.LoadAssetAtPath<Material>(path);
+                    if (!m)
+                    {
+                        m = new Material(mats[i]);
+                        AssetDatabase.CreateAsset(m, path);
+                    }
+                    else m.CopyPropertiesFromMaterial(mats[i]);
+                    m.SetFloat("_Cull", (float)UnityEngine.Rendering.CullMode.Off);
+                    m.doubleSidedGI = true;
+                    EditorUtility.SetDirty(m);
+                    mats[i] = m;
+                }
+                r.sharedMaterials = mats;
+            }
+            AssetDatabase.SaveAssets();
+        }
+
         static void BuildSam(Transform cam)
         {
             var avatar = ConfigureSam();
@@ -293,6 +323,7 @@ namespace DiveGame.EditorTools
             // trimmed a little head-up as divers swim, centred on the holder.
             model.transform.localRotation = Quaternion.Euler(84f, 0f, 0f) * model.transform.localRotation;
             model.transform.localPosition = new Vector3(0f, 0.09f, -0.95f);
+            TwoSidedFins(model);
             var anim = model.GetComponent<Animator>();
             if (!anim) anim = model.AddComponent<Animator>();
             anim.avatar = avatar; anim.applyRootMotion = false;

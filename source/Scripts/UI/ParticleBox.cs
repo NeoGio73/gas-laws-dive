@@ -120,6 +120,7 @@ namespace DiveGame.UI
             return new Dot { pos = pos, vel = new Vector2(Mathf.Cos(ang), Mathf.Sin(ang)) * s * BaseSpeed * Mathf.Sqrt(tempK / 300f) };
         }
 
+        public const float CollideAt = DotRadius;   // two dots bounce when their centres are this close
         const float MaxStep = 1f / 60f;   // long frames are split, so fast dots never pass through each other
 
         void Update()
@@ -128,6 +129,7 @@ namespace DiveGame.UI
             float dt = Mathf.Min(Time.deltaTime, 0.1f);
             int steps = Mathf.Max(1, Mathf.CeilToInt(dt / MaxStep));
             for (int k = 0; k < steps; k++) Step(dots, inner, dt / steps, this);
+            Tally(dt);
             marks.RemoveAll(m => Time.time - m.born > Mathf.Max(FlashLife, 1f));
             SetVerticesDirty();
         }
@@ -141,7 +143,7 @@ namespace DiveGame.UI
         //     momentum, so the speeds still follow the temperature, and it keeps scrambling directions,
         //     as collisions do in a real gas. Without it a dot that started almost along a wall would
         //     crawl along that wall for minutes, which looked as if particles gather at walls.
-        static void Step(List<Dot> dots, Vector2 inner, float dt, ParticleBox owner, bool collide = true)
+        static void Step(List<Dot> dots, Vector2 inner, float dt, ParticleBox owner, bool collide = true, float touch = CollideAt)
         {
             float hx = inner.x / 2 - DotRadius, hy = inner.y / 2 - DotRadius;
             if (hx <= 0f || hy <= 0f) return;
@@ -162,7 +164,7 @@ namespace DiveGame.UI
             // walls, as real crowded particles do; this keeps the spread even and still scrambles the
             // directions within a second or two.
             if (!collide) return;
-            const float touch = DotRadius, touch2 = touch * touch;
+            float touch2 = touch * touch;
             for (int i = 0; i < dots.Count; i++)
                 for (int j = i + 1; j < dots.Count; j++)
                 {
@@ -181,7 +183,7 @@ namespace DiveGame.UI
         // For the checks: runs count dots in a box of the given inside size for the given time (with
         // the game's own step) and reports how evenly they spread: the share of time in each of six
         // columns and six rows, and in the band one dot wide along the walls, against an even spread.
-        public static string SpreadCheck(int count, Vector2 size, float seconds, int seed = 1234, bool collide = true)
+        public static string SpreadCheck(int count, Vector2 size, float seconds, int seed = 1234, bool collide = true, float touch = CollideAt)
         {
             var rng = new System.Random(seed);
             var list = new List<Dot>();
@@ -194,7 +196,7 @@ namespace DiveGame.UI
             var hugWall = new int[count];
             for (int k = 0; k < steps; k++)
             {
-                Step(list, size, MaxStep, null, collide);   // collide: false shows the old motion, for comparison
+                Step(list, size, MaxStep, null, collide, touch);   // collide: false shows the old motion, for comparison
                 for (int i = 0; i < count; i++)
                 {
                     var p = list[i].pos; float w = 2 * DotRadius;
@@ -220,6 +222,47 @@ namespace DiveGame.UI
                    " | along walls " + (100 * band / samples).ToString("0.0") + "% (even " + (100 * evenBand).ToString("0.0") + "%)" +
                    " | longest stay by one wall " + longestHug.ToString("0.0") + " s" +
                    " | energy kept " + (energy1 / energy0).ToString("0.0000") + " | centre of dots " + (drift / count).ToString("0.0");
+        }
+
+        // A running tally of where the dots are while the game plays, for the checks (cheap: one pass
+        // over at most 60 dots a frame). Time is in dot-seconds; "by a wall" means within one dot width.
+        double tallyTime, leftHalf, rightHalf;
+        readonly double[] byWall = new double[4];        // left, right, bottom, top
+        readonly int[] mostByWall = new int[4];          // most dots by each wall at one moment
+
+        void Tally(float dt)
+        {
+            float hx = inner.x / 2 - DotRadius, hy = inner.y / 2 - DotRadius, w = 2 * DotRadius;
+            if (hx <= 0f || hy <= 0f || dots.Count == 0) return;
+            var now = new int[4];
+            foreach (var d in dots)
+            {
+                if (d.pos.x < 0) leftHalf += dt; else rightHalf += dt;
+                if (d.pos.x < -hx + w) now[0]++;
+                if (d.pos.x > hx - w) now[1]++;
+                if (d.pos.y < -hy + w) now[2]++;
+                if (d.pos.y > hy - w) now[3]++;
+            }
+            for (int i = 0; i < 4; i++) { byWall[i] += now[i] * dt; mostByWall[i] = Mathf.Max(mostByWall[i], now[i]); }
+            tallyTime += dt;
+        }
+
+        public void ResetTally()
+        {
+            tallyTime = leftHalf = rightHalf = 0;
+            for (int i = 0; i < 4; i++) { byWall[i] = 0; mostByWall[i] = 0; }
+        }
+
+        public string TallyReport()
+        {
+            double all = leftHalf + rightHalf;
+            if (all <= 0) return "no data";
+            return tallyTime.ToString("0") + " s, " + DotCount + " dots: left half " + (100 * leftHalf / all).ToString("0.0") +
+                   "%, right half " + (100 * rightHalf / all).ToString("0.0") +
+                   "% | average dots by each wall L/R/B/T " + (byWall[0] / tallyTime).ToString("0.00") + " / " +
+                   (byWall[1] / tallyTime).ToString("0.00") + " / " + (byWall[2] / tallyTime).ToString("0.00") + " / " +
+                   (byWall[3] / tallyTime).ToString("0.00") + " | most at once L/R/B/T " +
+                   mostByWall[0] + " / " + mostByWall[1] + " / " + mostByWall[2] + " / " + mostByWall[3];
         }
 
         void Hit(int wall, float along)
