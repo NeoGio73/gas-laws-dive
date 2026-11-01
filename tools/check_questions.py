@@ -30,6 +30,28 @@ TEST_ITEMS = {
     "item 16 (5.0 atm, oxygen)": ["5.0 atm", "oxygen"],
 }
 
+# Volumes (in L) the side panel shows at each dive's set moments (DiveDirector.cs). A calculation
+# question must not use one of its own dive's volumes in its prompt or its right answer: the
+# student could read the answer off the screen instead of working it out (his rule, 2026-11-01).
+# Dive 1: 5.00 L at the surface, 2.50 at 10 m, 1.67 at 20 m, 1.25 at 30 m, 2.50 after adding air.
+# Dive 2: 3.50 L at 28 °C, 3.35 L at 15 °C. Dive 5: lungs 2.00 L at 30 m, 2.80 L when told to
+# breathe out, 2.02 L at the surface.
+SCREEN_VOLUMES = {
+    1: [5.00, 2.50, 1.67, 1.25],
+    2: [3.50, 3.35],
+    5: [2.00, 2.80, 2.02],
+}
+
+
+def volumes_in(text):
+    """Every 'number L' in the text (not mL), with how many decimals it was written with."""
+    out = []
+    for m in re.finditer(r"(\d+(?:\.(\d+))?)\s*L\b", text):
+        if m.start() > 0 and text[m.start() - 1].isalpha():
+            continue
+        out.append((float(m.group(1)), len(m.group(2) or "")))
+    return out
+
 
 def dives_in_build():
     m = re.search(r"Dives\s*=\s*\{([^}]*)\}", CONFIG.read_text(encoding="utf-8"))
@@ -95,6 +117,13 @@ def main():
         for item, parts in TEST_ITEMS.items():
             if all(p in text for p in parts):
                 problems.append(f"{where} too close to D2L test {item}")
+
+        if q.get("type") == "calculation" and letter in LETTERS[: len(opts)]:
+            own = q.get("prompt", "") + " " + opts[LETTERS.index(letter)]
+            for x, dec in volumes_in(own):
+                for v in SCREEN_VOLUMES.get(q.get("dive"), []):
+                    if abs(x - v) <= 0.5 * 10 ** -dec + 1e-9:
+                        problems.append(f"{where} uses {x} L, which Dive {q.get('dive')} shows on screen ({v:.2f} L)")
 
     # A right answer must not turn up as a wrong option in another question.
     qs = data.get("questions", [])
