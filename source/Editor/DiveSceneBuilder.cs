@@ -51,7 +51,10 @@ namespace DiveGame.EditorTools
         public static void RebuildGame()
         {
             RebuildTitle();
-            Plain(DiveScene, "Dive", typeof(DiveGame.Dives.DiveDirector), new Color32(0x1E, 0x7F, 0xA8, 0xFF));
+            DiveEnvironment.BuildDiveScene(DiveScene);
+            EditorSceneManager.OpenScene(DiveScene);
+            new GameObject("Dive").AddComponent<DiveGame.Dives.DiveDirector>();
+            EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());
             Plain(EndScene, "End", typeof(EndScreen), new Color32(0x0E, 0x4A, 0x6E, 0xFF));
             EditorBuildSettings.scenes = new[]
             {

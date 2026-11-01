@@ -70,7 +70,36 @@ namespace DiveGame.EditorTools
             PlayerSettings.WebGL.exceptionSupport = WebGLExceptionSupport.ExplicitlyThrownExceptionsOnly;
             PlayerSettings.stripEngineCode = true;
             PlayerSettings.SetManagedStrippingLevel(NamedBuildTarget.WebGL, ManagedStrippingLevel.Medium);
+            ShrinkTextures();
             AssetDatabase.SaveAssets();
+        }
+
+        // The water package's textures at full size add several MB to the download. In the browser
+        // build they are capped (normals, caustics, foam, light shafts, coral and kelp textures).
+        static readonly string[] SmallInBrowser =
+        {
+            "Assets/Stylized Water 3/Materials/Textures",
+            "Assets/Stylized Water 3/Materials/Effects/Underwater",
+            "Assets/Stylized Water 3/_Demo/Underwater/DemoAssets/Materials/Textures",
+        };
+        const int BrowserMaxSize = 512;
+
+        static void ShrinkTextures()
+        {
+            foreach (string guid in AssetDatabase.FindAssets("t:Texture2D", SmallInBrowser))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                if (!(AssetImporter.GetAtPath(path) is TextureImporter imp)) continue;
+                var s = imp.GetPlatformTextureSettings("WebGL");
+                if (s.overridden && s.maxTextureSize <= BrowserMaxSize) continue;
+                s.overridden = true;
+                s.maxTextureSize = BrowserMaxSize;
+                s.format = TextureImporterFormat.Automatic;
+                s.textureCompression = TextureImporterCompression.Compressed;
+                s.crunchedCompression = true; s.compressionQuality = 60;
+                imp.SetPlatformTextureSettings(s);
+                imp.SaveAndReimport();
+            }
         }
     }
 }
