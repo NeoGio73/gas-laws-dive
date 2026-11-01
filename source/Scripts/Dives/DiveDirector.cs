@@ -146,6 +146,10 @@ namespace DiveGame.Dives
                 }
             });
             Phase = "cold";
+            // His words (2026-11-01), the same in both versions: the change is small, and that is right.
+            // (no-break spaces keep each number with its unit on one line)
+            Panel.SetNote("Almost no change: 15 °C is 288 K and 28 °C is 301 K, only about 4% colder on the " +
+                          "kelvin scale, so the air takes up only about 4% less room.");
             yield return Say("The water is now " + cold + " °C. You did not add or let out any air, and the depth did not " +
                              "change. Compare the air in your vest now with the air in warm water.", "Continue");
         }

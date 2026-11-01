@@ -92,7 +92,18 @@ namespace DiveGame.UI
 
         // Hold an earlier state of the air beside "Now". reference is a model that no longer changes.
         public void Compare(GasModel reference, string label) { refModel = reference; refLabel = label; refShownSide = -1; }
-        public void EndCompare() { refModel = null; }
+        public void EndCompare() { refModel = null; SetNote(null); }
+
+        // A sentence under the comparison, the same words in both versions (null hides it).
+        public void SetNote(string text)
+        {
+            if (!note) return;
+            note.text = text ?? "";
+            note.gameObject.SetActive(!string.IsNullOrEmpty(text));
+        }
+        Text note;
+        LayoutElement noteLe;   // holds the note's full height, so the boxes (not the words) give way
+        Text legendText;        // Version A's "Each dot stands for..." line
 
         void Build(bool particles)
         {
@@ -116,6 +127,7 @@ namespace DiveGame.UI
                 var legend = UiKit.Label(transform, "Each dot stands for a huge number of air particles.", 16, UiKit.Muted);
                 var legendLe = legend.gameObject.AddComponent<LayoutElement>(); legendLe.minHeight = 22;
                 Track(legend, null, legendLe, TwoLines);   // two lines in large text
+                legendText = legend;
             }
 
             size = particles ? 22 : 34;   // Version B: the same readouts, larger
@@ -126,6 +138,13 @@ namespace DiveGame.UI
             temperature = Row("Temperature", particles);
             o2 = Row("O2 pressure", particles);
             n2 = Row("N2 pressure", particles);
+
+            // The note under the comparison: same size, colour and place in both versions.
+            note = UiKit.Label(transform, "", 17, UiKit.Ink, FontStyle.Normal, TextAnchor.UpperLeft);
+            note.raycastTarget = false;
+            noteLe = note.gameObject.AddComponent<LayoutElement>();
+            Track(note);
+            note.gameObject.SetActive(false);
         }
 
         RectTransform Slot(string name, out ParticleBox box, out Text caption)
@@ -219,6 +238,25 @@ namespace DiveGame.UI
             {
                 Show(o2, s, b, x => x.ppO2.ToString("0.00") + " atm");
                 Show(n2, s, b, x => x.ppN2.ToString("0.00") + " atm");
+            }
+
+            if (note && note.gameObject.activeSelf)
+            {
+                float h = note.preferredHeight;
+                if (Mathf.Abs(noteLe.minHeight - h) > 0.5f) noteLe.minHeight = h;
+            }
+            // In large text the legend steps aside while the note shows, so the boxes keep their size.
+            if (legendText)
+            {
+                bool showLegend = !(large && note && note.gameObject.activeSelf);
+                if (legendText.gameObject.activeSelf != showLegend) legendText.gameObject.SetActive(showLegend);
+            }
+            if (boxArea)
+            {
+                // With the note showing, the particle boxes may shrink a little further to make room.
+                var le = boxArea.GetComponent<LayoutElement>();
+                float min = note && note.gameObject.activeSelf ? 120f : 200f;
+                if (le.minHeight != min) le.minHeight = min;
             }
 
             if (Box) DrawBoxes(s, b);
