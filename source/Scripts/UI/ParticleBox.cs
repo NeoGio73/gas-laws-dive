@@ -104,11 +104,14 @@ namespace DiveGame.UI
         }
 
         // New air comes in at the top left, where the vest's inflator would be; the first fill is spread evenly.
-        Dot NewDot(bool fromInflator)
+        Dot NewDot(bool fromInflator) => RandomDot(rng, inner, tempK, fromInflator);
+
+        static Dot RandomDot(System.Random rng, Vector2 inner, float tempK, bool fromInflator)
         {
+            float Rand(float a, float b) => a + (float)rng.NextDouble() * (b - a);
             float half = DotRadius;
             Vector2 pos = fromInflator
-                ? new Vector2(-inner.x / 2 + half + 2, inner.y / 2 - half - 2)
+                ? new Vector2(-inner.x / 2 + half + 2 + Rand(0, 4), inner.y / 2 - half - 2 - Rand(0, 4))   // a little apart, so they never sit exactly on top of each other
                 : new Vector2(Rand(-inner.x / 2 + half, inner.x / 2 - half), Rand(-inner.y / 2 + half, inner.y / 2 - half));
             // 2D speeds of an ideal gas follow a Rayleigh curve; scaled so the average is BaseSpeed at 300 K.
             float u = Mathf.Max(1e-4f, (float)rng.NextDouble());
@@ -117,25 +120,106 @@ namespace DiveGame.UI
             return new Dot { pos = pos, vel = new Vector2(Mathf.Cos(ang), Mathf.Sin(ang)) * s * BaseSpeed * Mathf.Sqrt(tempK / 300f) };
         }
 
-        float Rand(float a, float b) => a + (float)rng.NextDouble() * (b - a);
+        const float MaxStep = 1f / 60f;   // long frames are split, so fast dots never pass through each other
 
         void Update()
         {
             if (!Application.isPlaying) return;
-            float dt = Mathf.Min(Time.deltaTime, 0.05f);
+            float dt = Mathf.Min(Time.deltaTime, 0.1f);
+            int steps = Mathf.Max(1, Mathf.CeilToInt(dt / MaxStep));
+            for (int k = 0; k < steps; k++) Step(dots, inner, dt / steps, this);
+            marks.RemoveAll(m => Time.time - m.born > Mathf.Max(FlashLife, 1f));
+            SetVerticesDirty();
+        }
+
+        // One step of the motion, the same in the game and in SpreadCheck:
+        //   - each dot moves in a straight line;
+        //   - at a wall it bounces like a mirror (elastic: the part of its velocity across the wall turns
+        //     round, its speed is unchanged, and it travels the right distance back from the wall);
+        //   - two dots that touch while coming together bounce elastically (equal masses: they swap
+        //     the parts of their velocities along the line between them). This keeps energy and
+        //     momentum, so the speeds still follow the temperature, and it keeps scrambling directions,
+        //     as collisions do in a real gas. Without it a dot that started almost along a wall would
+        //     crawl along that wall for minutes, which looked as if particles gather at walls.
+        static void Step(List<Dot> dots, Vector2 inner, float dt, ParticleBox owner, bool collide = true)
+        {
             float hx = inner.x / 2 - DotRadius, hy = inner.y / 2 - DotRadius;
+            if (hx <= 0f || hy <= 0f) return;
             for (int i = 0; i < dots.Count; i++)
             {
                 var d = dots[i];
                 d.pos += d.vel * dt;
-                if (d.pos.x < -hx) { d.pos.x = -hx; d.vel.x = Mathf.Abs(d.vel.x); Hit(0, d.pos.y / inner.y); }
-                else if (d.pos.x > hx) { d.pos.x = hx; d.vel.x = -Mathf.Abs(d.vel.x); Hit(1, d.pos.y / inner.y); }
-                if (d.pos.y < -hy) { d.pos.y = -hy; d.vel.y = Mathf.Abs(d.vel.y); Hit(2, d.pos.x / inner.x); }
-                else if (d.pos.y > hy) { d.pos.y = hy; d.vel.y = -Mathf.Abs(d.vel.y); Hit(3, d.pos.x / inner.x); }
+                if (d.pos.x > hx) { d.pos.x = 2 * hx - d.pos.x; d.vel.x = -Mathf.Abs(d.vel.x); if (owner) owner.Hit(1, d.pos.y / inner.y); }
+                else if (d.pos.x < -hx) { d.pos.x = -2 * hx - d.pos.x; d.vel.x = Mathf.Abs(d.vel.x); if (owner) owner.Hit(0, d.pos.y / inner.y); }
+                if (d.pos.y > hy) { d.pos.y = 2 * hy - d.pos.y; d.vel.y = -Mathf.Abs(d.vel.y); if (owner) owner.Hit(3, d.pos.x / inner.x); }
+                else if (d.pos.y < -hy) { d.pos.y = -2 * hy - d.pos.y; d.vel.y = Mathf.Abs(d.vel.y); if (owner) owner.Hit(2, d.pos.x / inner.x); }
+                d.pos.x = Mathf.Clamp(d.pos.x, -hx, hx);   // only matters for a box smaller than one step
+                d.pos.y = Mathf.Clamp(d.pos.y, -hy, hy);
                 dots[i] = d;
             }
-            marks.RemoveAll(m => Time.time - m.born > Mathf.Max(FlashLife, 1f));
-            SetVerticesDirty();
+            // Dots bounce when their centres come within one dot radius (half their drawn width). Using
+            // the full width made crowded boxes (Dive 1 at 30 m) hold about 10% more dots along the
+            // walls, as real crowded particles do; this keeps the spread even and still scrambles the
+            // directions within a second or two.
+            if (!collide) return;
+            const float touch = DotRadius, touch2 = touch * touch;
+            for (int i = 0; i < dots.Count; i++)
+                for (int j = i + 1; j < dots.Count; j++)
+                {
+                    var a = dots[i]; var b = dots[j];
+                    Vector2 gap = b.pos - a.pos;
+                    float dist2 = gap.sqrMagnitude;
+                    if (dist2 >= touch2 || dist2 < 1e-6f) continue;
+                    Vector2 n = gap / Mathf.Sqrt(dist2);
+                    float closing = Vector2.Dot(b.vel - a.vel, n);
+                    if (closing >= 0f) continue;          // already moving apart
+                    a.vel += closing * n; b.vel -= closing * n;
+                    dots[i] = a; dots[j] = b;
+                }
+        }
+
+        // For the checks: runs count dots in a box of the given inside size for the given time (with
+        // the game's own step) and reports how evenly they spread: the share of time in each of six
+        // columns and six rows, and in the band one dot wide along the walls, against an even spread.
+        public static string SpreadCheck(int count, Vector2 size, float seconds, int seed = 1234, bool collide = true)
+        {
+            var rng = new System.Random(seed);
+            var list = new List<Dot>();
+            for (int i = 0; i < count; i++) list.Add(RandomDot(rng, size, 300f, false));
+            float hx = size.x / 2 - DotRadius, hy = size.y / 2 - DotRadius;
+            var cols = new double[6]; var rows = new double[6]; double band = 0, samples = 0;
+            double energy0 = 0; foreach (var d in list) energy0 += d.vel.sqrMagnitude;
+            int steps = Mathf.CeilToInt(seconds / MaxStep);
+            var hugging = new float[count]; float longestHug = 0;   // time a dot stays within one dot width of the same wall
+            var hugWall = new int[count];
+            for (int k = 0; k < steps; k++)
+            {
+                Step(list, size, MaxStep, null, collide);   // collide: false shows the old motion, for comparison
+                for (int i = 0; i < count; i++)
+                {
+                    var p = list[i].pos; float w = 2 * DotRadius;
+                    int wall = p.x > hx - w ? 1 : p.x < -hx + w ? 0 : p.y > hy - w ? 3 : p.y < -hy + w ? 2 : -1;
+                    if (wall >= 0 && wall == hugWall[i]) hugging[i] += MaxStep; else hugging[i] = 0;
+                    hugWall[i] = wall;
+                    if (wall >= 0) longestHug = Mathf.Max(longestHug, hugging[i]);
+                }
+                if (k % 6 != 0) continue;
+                foreach (var d in list)
+                {
+                    cols[Mathf.Clamp((int)((d.pos.x + hx) / (2 * hx) * 6), 0, 5)]++;
+                    rows[Mathf.Clamp((int)((d.pos.y + hy) / (2 * hy) * 6), 0, 5)]++;
+                    if (Mathf.Abs(d.pos.x) > hx - 2 * DotRadius || Mathf.Abs(d.pos.y) > hy - 2 * DotRadius) band++;
+                    samples++;
+                }
+            }
+            double energy1 = 0; Vector2 drift = Vector2.zero;
+            foreach (var d in list) { energy1 += d.vel.sqrMagnitude; drift += d.pos; }
+            double evenBand = 1 - (2 * hx - 4 * DotRadius) * (2 * hy - 4 * DotRadius) / (4.0 * hx * hy);
+            string Pct(double[] a) { var s = new string[a.Length]; for (int i = 0; i < a.Length; i++) s[i] = (100 * a[i] / samples).ToString("0.0"); return string.Join(" ", s); }
+            return "columns % " + Pct(cols) + " | rows % " + Pct(rows) + " (even 16.7)" +
+                   " | along walls " + (100 * band / samples).ToString("0.0") + "% (even " + (100 * evenBand).ToString("0.0") + "%)" +
+                   " | longest stay by one wall " + longestHug.ToString("0.0") + " s" +
+                   " | energy kept " + (energy1 / energy0).ToString("0.0000") + " | centre of dots " + (drift / count).ToString("0.0");
         }
 
         void Hit(int wall, float along)
