@@ -1,0 +1,293 @@
+{
+  "about": "Gas Laws Dive questions. DRAFT for Prof. Picione's review (2026-10-31). Edit the words freely; see docs/QUESTIONS_README.md. Run  python tools/check_questions.py  after any change.",
+  "questions": [
+    {
+      "id": "D1-Q1",
+      "dive": 1,
+      "type": "particle",
+      "prompt": "At 10 m the water squeezes the air in your vest to half the volume it had at the surface. No air got in or out. What happened to the mass of that air?",
+      "image": "",
+      "options": [
+        "It halved, because the volume halved.",
+        "It stayed the same: the same particles are there, just closer together.",
+        "It doubled, because the pressure doubled.",
+        "It went up a little, because each particle got heavier."
+      ],
+      "correct": "B",
+      "feedback": [
+        "Not quite. Mass depends on how many particles there are and what they are, not on the space they fill. Halving the volume packs them closer; it removes none.",
+        "Right. No air got in or out, so the same particles, with the same mass, are still there. They are packed into half the space, so the air is twice as dense.",
+        "Not quite. Pressure squeezes the particles closer together; it does not add any. With no air added, the mass cannot go up.",
+        "Not quite. Pressure does not change the particles themselves. The same particles are just closer together."
+      ],
+      "check": {
+        "expr": "",
+        "value": 0
+      }
+    },
+    {
+      "id": "D1-Q2",
+      "dive": 1,
+      "type": "calculation",
+      "prompt": "Your vest holds 4.0 L of air at the surface (1.0 atm). Without adding air, you descend to 15 m, where the pressure is 2.5 atm. The temperature stays the same. What is the volume of the air in the vest now?",
+      "image": "",
+      "options": [
+        "10 L",
+        "4.0 L",
+        "0.63 L",
+        "1.6 L"
+      ],
+      "correct": "D",
+      "feedback": [
+        "Not quite. You multiplied by the pressure ratio. The pressure went up, so the volume must go down: V2 = P1V1 / P2.",
+        "Not quite. The amount of air is the same, but the pressure on it has changed, so its volume changes too.",
+        "Not quite. Check which pressure goes on top: V2 = P1V1 / P2 = (1.0 × 4.0) / 2.5.",
+        "Right. Boyle's law: P1V1 = P2V2, so V2 = (1.0 atm × 4.0 L) / 2.5 atm = 1.6 L. Higher pressure, smaller volume."
+      ],
+      "check": {
+        "expr": "1.0*4.0/2.5",
+        "value": 1.6
+      }
+    },
+    {
+      "id": "D1-Q3",
+      "dive": 1,
+      "type": "particle",
+      "prompt": "Deeper down, you have to add air to your vest to stop sinking. Why?",
+      "image": "",
+      "options": [
+        "The water pressure squeezes the air into a smaller space, so the vest pushes aside less water.",
+        "The air particles become heavier at depth.",
+        "Some of the air turns into water at depth.",
+        "The air particles slow down at depth."
+      ],
+      "correct": "A",
+      "feedback": [
+        "Right. The same particles are pressed into a smaller space, so the vest takes up less room in the water and holds you up less. Adding air brings the volume back.",
+        "Not quite. Pressure does not change the mass of a particle. What changes is how much space the particles take up.",
+        "Not quite. The air stays air. The particles are just packed closer together.",
+        "Not quite. Particle speed depends on temperature, not on depth. Think about the space the air has."
+      ],
+      "check": {
+        "expr": "",
+        "value": 0
+      }
+    },
+    {
+      "id": "D1-Q4",
+      "dive": 1,
+      "type": "calculation",
+      "prompt": "At 25 m (3.5 atm) you add air until your vest holds 2.0 L. If you rose straight to the surface (1.0 atm) without letting any air out, what volume would that air take up? The temperature stays the same.",
+      "image": "",
+      "options": [
+        "0.57 L",
+        "2.0 L",
+        "7.0 L",
+        "5.0 L"
+      ],
+      "correct": "C",
+      "feedback": [
+        "Not quite. The pressure goes down on the way up, so the volume goes up, not down.",
+        "Not quite. The pressure changes from 3.5 atm to 1.0 atm, so the volume changes too.",
+        "Right. V2 = P1V1 / P2 = (3.5 atm × 2.0 L) / 1.0 atm = 7.0 L. That is why divers let air out of the vest as they rise.",
+        "Not quite. Boyle's law multiplies and divides; it does not add. V2 = P1V1 / P2."
+      ],
+      "check": {
+        "expr": "3.5*2.0/1.0",
+        "value": 7.0
+      }
+    },
+    {
+      "id": "D2-Q1",
+      "dive": 2,
+      "type": "particle",
+      "prompt": "In the cold layer you stay at the same depth, so the air in your vest ends up at the same pressure as before, yet its particles now move more slowly. How can slower particles keep up the same pressure?",
+      "image": "",
+      "options": [
+        "They can't: the pressure inside the vest drops and stays lower than the water around it.",
+        "Each particle grows to fill the space.",
+        "The vest shrinks until the particles are close enough together that there are more hits each second on each part of the wall, making up for the gentler hits.",
+        "Cold particles are heavier, so each hit is just as strong."
+      ],
+      "correct": "C",
+      "feedback": [
+        "Not quite. If the pressure inside were lower, the water would keep squeezing the vest. It stops shrinking once the push inside equals the push outside again.",
+        "Not quite. Gas particles never change size, whatever the temperature.",
+        "Right. Slower particles hit more gently. The water squeezes the vest smaller until the particles are packed close enough that more hits each second on each part of the wall make up for it. Then the pushes inside and outside match again.",
+        "Not quite. Temperature does not change a particle's mass. The particles are the same; they just move more slowly."
+      ],
+      "check": {
+        "expr": "",
+        "value": 0
+      }
+    },
+    {
+      "id": "D2-Q2",
+      "dive": 2,
+      "type": "calculation",
+      "prompt": "Your vest holds 3.5 L of air in water at 28 °C. You swim into the cold layer at 15 °C and stay at the same depth, so the pressure does not change. What is the new volume?",
+      "image": "",
+      "options": [
+        "3.3 L",
+        "1.9 L",
+        "3.7 L",
+        "3.5 L"
+      ],
+      "correct": "A",
+      "feedback": [
+        "Right. Charles's law, in kelvins: V2 = V1 × T2 / T1 = 3.5 L × 288 K / 301 K = 3.3 L.",
+        "Not quite. You used degrees Celsius. Gas laws need kelvins: add 273 to each temperature first.",
+        "Not quite. Check which temperature goes on top. It got colder, so the volume must get smaller: V2 = V1 × T2 / T1.",
+        "Not quite. The temperature changed, so the volume changes too, though only a little."
+      ],
+      "check": {
+        "expr": "3.5*(15+273.15)/(28+273.15)",
+        "value": 3.3
+      }
+    },
+    {
+      "id": "D2-Q3",
+      "dive": 2,
+      "type": "particle",
+      "prompt": "Why must temperatures be in kelvins, not degrees Celsius, in the gas laws?",
+      "image": "",
+      "options": [
+        "Kelvin numbers are bigger, which makes the arithmetic easier.",
+        "Water freezes at 0 K.",
+        "Celsius is used only in science outside the United States.",
+        "The kelvin scale starts at absolute zero, where the particles would stop, so the volume is proportional to the temperature in kelvins."
+      ],
+      "correct": "D",
+      "feedback": [
+        "Not quite. It is not about convenience. Think about what zero means on each scale.",
+        "Not quite. Water freezes at 0 °C, which is 273 K.",
+        "Not quite. Scientists everywhere use both scales. Think about what zero means on each one.",
+        "Right. Zero kelvin is the true bottom of the scale, so at constant pressure a gas's volume is proportional to its temperature in kelvins: double the kelvins, double the volume. That is not true in degrees Celsius: 20 °C is not twice as hot as 10 °C."
+      ],
+      "check": {
+        "expr": "",
+        "value": 0
+      }
+    },
+    {
+      "id": "D2-Q4",
+      "dive": 2,
+      "type": "calculation",
+      "prompt": "Going from 28 °C to 15 °C is a 13-degree drop. As a percentage of the starting temperature in kelvins, how big a drop is that?",
+      "image": "",
+      "options": [
+        "46%",
+        "4.3%",
+        "13%",
+        "0.43%"
+      ],
+      "correct": "B",
+      "feedback": [
+        "Not quite. You worked in degrees Celsius (13 out of 28). Use kelvins: 28 °C is 301 K.",
+        "Right. 13 K out of 301 K is 4.3%. That is why the vest changes only a little in the cold layer.",
+        "Not quite. 13 degrees is not 13% of the temperature. Work it out in kelvins: 13 out of 301.",
+        "Not quite. Check the decimal point: 13 / 301 = 0.043, which is 4.3%."
+      ],
+      "check": {
+        "expr": "100*13/(28+273.15)",
+        "value": 4.3
+      }
+    },
+    {
+      "id": "D5-Q1",
+      "dive": 5,
+      "type": "particle",
+      "prompt": "During your safety stop at 5 m, the pressure is 1.5 atm. Compared with a breath of the same size at the surface, a breath at 5 m holds",
+      "image": "",
+      "options": [
+        "the same number of air particles, each one smaller.",
+        "fewer air particles, because the water pushes some away.",
+        "the same number of air particles, moving faster.",
+        "more air particles, packed closer together."
+      ],
+      "correct": "D",
+      "feedback": [
+        "Not quite. Gas particles never change size. At higher pressure, more of them fit in the same space.",
+        "Not quite. Higher pressure packs more particles into the same space, not fewer.",
+        "Not quite. Particle speed depends on temperature, not on pressure. Think about how many fit in the space.",
+        "Right. Your regulator gives you air at the pressure around you. At 1.5 atm, the same lung volume holds about 1.5 times as many particles."
+      ],
+      "check": {
+        "expr": "1+5/10",
+        "value": 1.5
+      }
+    },
+    {
+      "id": "D5-Q2",
+      "dive": 5,
+      "type": "calculation",
+      "prompt": "At 20 m (3.0 atm), where the water is 16 °C, a diver's lungs hold 1.8 L of air. If the diver rose to the surface (1.0 atm), where the water is 27 °C, without breathing out, what volume would that air need?",
+      "image": "",
+      "options": [
+        "5.4 L",
+        "5.6 L",
+        "0.62 L",
+        "9.1 L"
+      ],
+      "correct": "B",
+      "feedback": [
+        "Not quite. You allowed for the pressure but not the temperature. The water warmed from 16 °C to 27 °C, so the air grows a little more.",
+        "Right. Combined gas law: V2 = V1 × (P1 / P2) × (T2 / T1) = 1.8 L × (3.0 / 1.0) × (300 K / 289 K) = 5.6 L, about three times what the lungs held at 20 m. Lungs cannot stretch like that, which is why divers never hold their breath on the way up.",
+        "Not quite. Check the pressure ratio. The pressure falls, so the volume must grow: multiply by P1 / P2 = 3.0 / 1.0.",
+        "Not quite. You used degrees Celsius for the temperature ratio. Use kelvins: 289 K and 300 K."
+      ],
+      "check": {
+        "expr": "1.8*(3.0/1.0)*((27+273.15)/(16+273.15))",
+        "value": 5.6
+      }
+    },
+    {
+      "id": "D5-Q3",
+      "dive": 5,
+      "type": "particle",
+      "prompt": "Why do divers breathe out slowly and steadily all the way up?",
+      "image": "",
+      "options": [
+        "Air particles become larger near the surface.",
+        "Breathing out makes the diver sink more slowly.",
+        "As the pressure around them drops, the air in their lungs spreads out and takes up more room, so some must be let out.",
+        "Near the surface the lungs make extra air particles."
+      ],
+      "correct": "C",
+      "feedback": [
+        "Not quite. Gas particles never change size. They spread out because there is less pressure holding them together.",
+        "Not quite. The reason is the air in the lungs: with less pressure around it, it takes up more space.",
+        "Right. Less pressure outside means the same particles spread out into a larger volume. Breathing out keeps the volume of air in the lungs safe.",
+        "Not quite. No new particles are made. The same particles take up more space as the pressure falls."
+      ],
+      "check": {
+        "expr": "",
+        "value": 0
+      }
+    },
+    {
+      "id": "D5-Q4",
+      "dive": 5,
+      "type": "calculation",
+      "prompt": "A bubble of 0.40 mL leaves your regulator at 30 m (4.0 atm), where the water is 16 °C. It rises to the surface (1.0 atm), where the water is 27 °C. What is its volume at the surface?",
+      "image": "",
+      "options": [
+        "1.7 mL",
+        "1.6 mL",
+        "0.10 mL",
+        "2.7 mL"
+      ],
+      "correct": "A",
+      "feedback": [
+        "Right. V2 = 0.40 mL × (4.0 / 1.0) × (300 K / 289 K) = 1.7 mL. Bubbles grow as they rise.",
+        "Not quite. You allowed for the pressure but not the temperature. The water warms on the way up, so the bubble grows a little more.",
+        "Not quite. Check the pressure ratio. The pressure falls on the way up, so the bubble must get bigger.",
+        "Not quite. You used degrees Celsius for the temperature ratio. Use kelvins: 289 K and 300 K."
+      ],
+      "check": {
+        "expr": "0.40*(4.0/1.0)*((27+273.15)/(16+273.15))",
+        "value": 1.7
+      }
+    }
+  ]
+}

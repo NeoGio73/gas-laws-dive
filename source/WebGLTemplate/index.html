@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gas Laws Dive</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #0b2240; color: #f4f7fb;
+               font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; overflow: hidden; }
+  #unity-canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; display: block;
+                  background: #0e4a6e; touch-action: none; outline: none; }
+  #loading { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center;
+             justify-content: center; gap: 18px; padding: 24px; box-sizing: border-box; text-align: center;
+             background: #0b2240; z-index: 2; }
+  #loading h1 { margin: 0; font-size: clamp(28px, 6vw, 48px); }
+  #loading p { margin: 0; max-width: 36em; line-height: 1.45; color: #c3d1e2; font-size: 17px; }
+  #bar { width: min(420px, 80vw); height: 14px; border: 2px solid #c3d1e2; border-radius: 9px; overflow: hidden; }
+  #bar-fill { height: 100%; width: 0%; background: #f2c14e; transition: width .2s; }
+  #percent { font-weight: 700; font-size: 17px; }
+  #problem { display: none; max-width: 36em; background: #13315c; border: 2px solid #f2c14e; padding: 16px 20px;
+             border-radius: 8px; line-height: 1.45; }
+  #turn { display: none; position: fixed; left: 50%; top: 10px; transform: translateX(-50%); z-index: 3;
+          background: #13315c; border: 1px solid #6f8fb5; padding: 8px 14px; border-radius: 8px; font-size: 15px; }
+  @media (orientation: portrait) and (max-width: 700px) { #turn { display: block; } }
+  @media (prefers-reduced-motion: reduce) { #bar-fill { transition: none; } }
+</style>
+</head>
+<body>
+<canvas id="unity-canvas" tabindex="-1" aria-label="Gas Laws Dive game"></canvas>
+
+<div id="loading" role="status" aria-live="polite">
+  <h1>Gas Laws Dive</h1>
+  <p>Loading the dive. This can take up to half a minute on a slow connection.</p>
+  <div id="bar" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="bar-fill"></div></div>
+  <div id="percent">0%</div>
+  <div id="problem" role="alert"></div>
+  <noscript><div style="max-width:36em">This game needs JavaScript. Please turn JavaScript on, or open the game in another browser.</div></noscript>
+</div>
+<div id="turn">This game works best with your phone turned sideways.</div>
+
+<script>
+  (function () {
+    var canvas = document.querySelector("#unity-canvas");
+    var loading = document.querySelector("#loading");
+    var fill = document.querySelector("#bar-fill");
+    var bar = document.querySelector("#bar");
+    var percent = document.querySelector("#percent");
+    var problem = document.querySelector("#problem");
+
+    function fail(message) {
+      problem.style.display = "block";
+      problem.textContent = "The game could not start. " + (message ? "(" + message + ") " : "") +
+        "Please reload the page. If it still does not start, try Chrome, Edge, Firefox or Safari on another device, " +
+        "and tell your instructor.";
+    }
+
+    var buildUrl = "Build";
+    var loaderUrl = buildUrl + "/{{{ LOADER_FILENAME }}}";
+    var config = {
+      arguments: [],
+#if PROGRESSIVE_ASSET_LOADING
+      primaryDataUrls: {{{ JSON.stringify(PRIMARY_DATA_FILES) }}},
+      secondaryDataUrls: {{{ JSON.stringify(SECONDARY_DATA_FILES) }}},
+#else
+      dataUrl: buildUrl + "/{{{ DATA_FILENAME }}}",
+#endif
+      frameworkUrl: buildUrl + "/{{{ FRAMEWORK_FILENAME }}}",
+#if USE_WASM
+      codeUrl: buildUrl + "/{{{ CODE_FILENAME }}}",
+#endif
+#if SYMBOLS_FILENAME
+      symbolsUrl: buildUrl + "/{{{ SYMBOLS_FILENAME }}}",
+#endif
+      streamingAssetsUrl: "StreamingAssets",
+      companyName: {{{ JSON.stringify(COMPANY_NAME) }}},
+      productName: {{{ JSON.stringify(PRODUCT_NAME) }}},
+      productVersion: {{{ JSON.stringify(PRODUCT_VERSION) }}},
+      devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2),   // sharp, but not too heavy for phones
+      showBanner: function (message, type) { if (type === "error") fail(message); }
+    };
+
+    var script = document.createElement("script");
+    script.src = loaderUrl;
+    script.onload = function () {
+      createUnityInstance(canvas, config, function (p) {
+        var v = Math.round(p * 100);
+        fill.style.width = v + "%";
+        bar.setAttribute("aria-valuenow", v);
+        percent.textContent = v + "%";
+      }).then(function (instance) {
+        window.diveGame = instance;
+        loading.style.display = "none";
+        canvas.focus();
+      }).catch(function (error) { fail(String(error)); });
+    };
+    script.onerror = function () { fail("The game files did not load."); };
+    document.body.appendChild(script);
+  })();
+</script>
+</body>
+</html>
