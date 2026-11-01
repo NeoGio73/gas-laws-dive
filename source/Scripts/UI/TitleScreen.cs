@@ -47,7 +47,8 @@ namespace DiveGame.UI
                              v => PlayerChoices.ReduceMotion = v);
             var row = UiKit.Row(card);
             UiKit.MakeButton(row, "Continue", true, OnNameEntered);
-            UiKit.Label(card, "Extra credit for CHM 1025 and CHM 1045 · Daytona State College", 18, UiKit.Muted);
+            string course = GameConfig.CourseLine(StudySession.Section);
+            if (course != null) UiKit.Label(card, course, 18, UiKit.Muted);
             Focus(nameBox);
         }
 
