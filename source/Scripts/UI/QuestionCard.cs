@@ -99,6 +99,20 @@ namespace DiveGame.UI
             continueButton = UiKit.MakeButton(row, number < count ? "Next question" : "Continue the dive", true, () => next?.Invoke());
             continueButton.gameObject.SetActive(false);
             Select(optionButtons[0]);
+            FitCard();
+        }
+
+        // A safety net: if the card (with its feedback) is ever taller than the space it has, it is
+        // shrunk to fit, so the question and the Next button are never off screen. The tallest card,
+        // D2-Q1 with its feedback, is 707 of 720 units (measured 2026-11-01).
+        void FitCard()
+        {
+            if (!card) return;
+            LayoutRebuilder.ForceRebuildLayoutImmediate(card);
+            float h = LayoutUtility.GetPreferredHeight(card);
+            float room = area.rect.height - 16f;
+            float s = (h > room && h > 0f) ? room / h : 1f;
+            card.localScale = new Vector3(s, s, 1f);
         }
 
         void Choose(int i)
@@ -132,6 +146,7 @@ namespace DiveGame.UI
                 var stillOpen = optionButtons.Find(b => b.interactable);
                 if (stillOpen) Select(stillOpen);
             }
+            FitCard();
         }
 
         void Update()

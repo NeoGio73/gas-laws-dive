@@ -44,7 +44,10 @@ namespace DiveGame.UI
             var scaler = go.GetComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1280, 720);
-            scaler.matchWidthOrHeight = 0.5f;
+            // Expand: the whole 1280 x 720 layout always fits, whatever the window's shape. (Matching
+            // width and height half-and-half let a very wide window enlarge the text past its height:
+            // a question card ran off the top and bottom in a 2.6:1 Chrome window, 2026-11-01.)
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
             return canvas;
         }
 
