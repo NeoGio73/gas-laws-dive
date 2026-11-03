@@ -21,7 +21,9 @@ TOKEN = re.search(r'LogToken\s*=\s*"([^"]+)"',
                   (ROOT / "Assets/DiveGame/Scripts/Core/GameConfig.cs").read_text(encoding="utf-8")).group(1)
 COLUMNS = ["row_id", "study_id", "section", "version", "build_version", "session_id", "dive_id",
            "question_id", "answer", "correct", "attempt_number", "time_on_question_s",
-           "time_in_dive_s", "platform", "timestamp", "received"]
+           "time_in_dive_s", "platform", "timestamp", "fps_avg", "fps_p5", "canvas_w", "canvas_h",
+           "received"]
+MEASURES = ("fps_avg", "fps_p5", "canvas_w", "canvas_h")   # 0 = not measured: written as an empty cell
 OUT = ROOT / "tools/private"
 OUT.mkdir(parents=True, exist_ok=True)
 tabs = {}          # tab -> list of rows
@@ -37,7 +39,13 @@ def looks_right(r):
             and isinstance(r.get("build_version"), str) and len(r["build_version"]) <= 40
             and isinstance(r.get("question_id"), str) and len(r["question_id"]) <= 40
             and isinstance(r.get("answer"), str) and len(r["answer"]) <= 2000
-            and r.get("platform") in ("desktop", "mobile"))
+            and r.get("platform") in ("desktop", "mobile")
+            and in_range(r.get("fps_avg"), 0, 1000) and in_range(r.get("fps_p5"), 0, 1000)
+            and in_range(r.get("canvas_w"), 0, 20000) and in_range(r.get("canvas_h"), 0, 20000))
+
+
+def in_range(v, lo, hi):
+    return v is None or (isinstance(v, (int, float)) and not isinstance(v, bool) and lo <= v <= hi)
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -77,6 +85,8 @@ class Handler(BaseHTTPRequestHandler):
                 dup += 1
                 continue
             r = dict(r, received=datetime.now(timezone.utc).isoformat())
+            for m in MEASURES:
+                if not r.get(m): r[m] = ""
             rows.append(r)
             added += 1
             with open(OUT / f"mock_sheet_{tab}.csv", "w", newline="", encoding="utf-8") as f:

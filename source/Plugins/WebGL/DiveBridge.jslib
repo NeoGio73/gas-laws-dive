@@ -47,6 +47,11 @@ mergeInto(LibraryManager.library, {
     return 1 / Math.min(window.devicePixelRatio || 1, 2);
   },
 
+  // The size of the game's canvas (its area in the browser window) in CSS pixels, for the log.
+  // No other device details are recorded.
+  DiveCanvasWidth: function () { try { return Math.round(Module.canvas.getBoundingClientRect().width) || 0; } catch (e) { return 0; } },
+  DiveCanvasHeight: function () { try { return Math.round(Module.canvas.getBoundingClientRect().height) || 0; } catch (e) { return 0; } },
+
   // 1 when the browser or system asks for reduced motion.
   DivePrefersReducedMotion: function () {
     try { return window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 1 : 0; } catch (e) { return 0; }

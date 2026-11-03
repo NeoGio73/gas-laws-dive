@@ -32,6 +32,10 @@ namespace DiveGame.EditorTools
                     throw new System.InvalidOperationException("Could not switch the project to WebGL.");
                 DiveSceneBuilder.RebuildGame();
                 ConfigurePlayer();
+                var apis = PlayerSettings.GetGraphicsAPIs(BuildTarget.WebGL);
+                if (PlayerSettings.GetUseDefaultGraphicsAPIs(BuildTarget.WebGL) || apis.Length != 1 ||
+                    apis[0] != UnityEngine.Rendering.GraphicsDeviceType.OpenGLES3)
+                    throw new System.InvalidOperationException("The browser build must use WebGL 2 only.");
                 var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
                 {
                     scenes = new[] { DiveSceneBuilder.TitleScene, DiveSceneBuilder.DiveScene, DiveSceneBuilder.EndScene },
@@ -63,6 +67,9 @@ namespace DiveGame.EditorTools
             PlayerSettings.runInBackground = true;   // keeps the clocks and the sender going in a background tab
             PlayerSettings.SplashScreen.show = false;
             PlayerSettings.WebGL.template = "PROJECT:DiveGame";
+            // WebGL 2 only (his rule, 2026-11-03): never WebGPU, never chosen automatically.
+            PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.WebGL, false);
+            PlayerSettings.SetGraphicsAPIs(BuildTarget.WebGL, new[] { UnityEngine.Rendering.GraphicsDeviceType.OpenGLES3 });
             PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Gzip;
             PlayerSettings.WebGL.decompressionFallback = true;
             PlayerSettings.WebGL.dataCaching = true;

@@ -14,7 +14,11 @@
 var TOKEN = 'c5xizv6atncbcthj';   // must match GameConfig.LogToken in the game
 var COLUMNS = ['row_id', 'study_id', 'section', 'version', 'build_version', 'session_id', 'dive_id',
                'question_id', 'answer', 'correct', 'attempt_number', 'time_on_question_s',
-               'time_in_dive_s', 'platform', 'timestamp', 'received'];
+               'time_in_dive_s', 'platform', 'timestamp', 'fps_avg', 'fps_p5', 'canvas_w', 'canvas_h',
+               'received'];
+// Measured once per dive and written on that dive's rows; 0 means not measured (the survey rows),
+// stored as an empty cell.
+var MEASURES = ['fps_avg', 'fps_p5', 'canvas_w', 'canvas_h'];
 var MAX_ROWS_PER_POST = 200;
 
 function doGet() {
@@ -45,7 +49,11 @@ function doPost(e) {
       byTab[tab].forEach(function (r) {
         if (seen[r.row_id]) { duplicates++; return; }
         seen[r.row_id] = true;
-        out.push(COLUMNS.map(function (c) { return c === 'received' ? now : clean(r[c]); }));
+        out.push(COLUMNS.map(function (c) {
+          if (c === 'received') return now;
+          if (MEASURES.indexOf(c) >= 0 && !r[c]) return '';   // not measured
+          return clean(r[c]);
+        }));
       });
       if (out.length) {
         sheet.getRange(sheet.getLastRow() + 1, 1, out.length, COLUMNS.length).setValues(out);
@@ -67,7 +75,14 @@ function looksRight(r) {
     && typeof r.build_version === 'string' && r.build_version.length <= 40
     && typeof r.question_id === 'string' && r.question_id.length <= 40
     && typeof r.answer === 'string' && r.answer.length <= 2000
-    && /^(desktop|mobile)$/.test(r.platform || '');
+    && /^(desktop|mobile)$/.test(r.platform || '')
+    && inRange(r.fps_avg, 0, 1000) && inRange(r.fps_p5, 0, 1000)
+    && inRange(r.canvas_w, 0, 20000) && inRange(r.canvas_h, 0, 20000);
+}
+
+// A measure may be missing (a row from an older build); if present it must be a number in range.
+function inRange(v, lo, hi) {
+  return v === undefined || v === null || (typeof v === 'number' && isFinite(v) && v >= lo && v <= hi);
 }
 
 function sheetFor(name) {
@@ -106,7 +121,8 @@ function testWrite() {
     row_id: '000000000000-0001', study_id: '0000000000', section: 'TEST', version: 'A',
     build_version: 'setup-test-pilot', session_id: '000000000000', dive_id: 0, question_id: 'SETUP',
     answer: 'A', correct: true, attempt_number: 1, time_on_question_s: 0, time_in_dive_s: 0,
-    platform: 'desktop', timestamp: new Date().toISOString() }] };
+    platform: 'desktop', timestamp: new Date().toISOString(),
+    fps_avg: 60, fps_p5: 55, canvas_w: 1280, canvas_h: 720 }] };
   var out = doPost({ postData: { contents: JSON.stringify(fake) } });
   Logger.log(out.getContent());
 }

@@ -28,6 +28,12 @@ namespace DiveGame.Study
         public double time_in_dive_s;
         public string platform;
         public string timestamp;
+        // Filled in at the end of each dive for that dive's rows (FrameRecorder); 0 = not measured
+        // (the survey rows at the end).
+        public double fps_avg;          // average frames per second during the dive
+        public double fps_p5;           // 5th-percentile frames per second: the frame rate of the slowest 5% of frames
+        public int canvas_w;            // the game canvas's width in the browser window, CSS pixels
+        public int canvas_h;            // the game canvas's height, CSS pixels
     }
 
     [Serializable]
@@ -100,6 +106,18 @@ namespace DiveGame.Study
             waiting.Add(row);
             Save();
             RowAdded?.Invoke(row);
+        }
+
+        // At the end of a dive: that dive's frame rates and canvas size go on its rows still waiting.
+        public static void SetDiveMeasures(int dive, FrameRecorder.Measures m)
+        {
+            foreach (var r in waiting)
+            {
+                if (r.dive_id != dive || r.fps_avg > 0 || r.session_id != StudySession.SessionId) continue;   // this visit's rows only
+                r.fps_avg = m.fpsAverage; r.fps_p5 = m.fps5thPercentile;
+                r.canvas_w = m.canvasWidth; r.canvas_h = m.canvasHeight;
+            }
+            Save();
         }
 
         // For the sender: up to max rows, oldest first. They stay waiting (and saved) until Sent.

@@ -51,6 +51,7 @@ namespace DiveGame.Dives
             Tint(Model.depthM);
 
             DiveClock.Start(Dive);
+            var frames = gameObject.AddComponent<FrameRecorder>();
             switch (Dive)
             {
                 case 1: yield return Descent(); break;
@@ -67,6 +68,7 @@ namespace DiveGame.Dives
             Panel.EndCompare();
 
             Phase = "finished";
+            StudyLog.SetDiveMeasures(Dive, frames.Summary());   // frame rates and canvas size on this dive's rows
             StudySender.Flush();   // the end of every dive (handoff Section 9)
             yield return Say("Dive " + Dive + " complete. Well done.", "Continue");
             GameFlow.AfterDive(Dive);
